@@ -2878,7 +2878,7 @@ BOOL DrawDisplay(HDC hdc, RECT rect)
             x += size.cx + 4;
 
             // Display cents
-            sprintf(s, "%+4.2lf¢", display.c * 100.0);
+            sprintf(s, "%+4.2lfc", display.c * 100.0);
             TextOut(hbdc, x, 0, s, lstrlen(s));
 
             GetTextExtentPoint32(hbdc, s, lstrlen(s), &size);
@@ -2904,6 +2904,9 @@ BOOL DrawDisplay(HDC hdc, RECT rect)
         }
 
         int y = 0;
+
+        double f_prev = 0;
+        double c_prev = 0;
 
         for (int i = 0; i < display.count; i++)
         {
@@ -2935,33 +2938,41 @@ BOOL DrawDisplay(HDC hdc, RECT rect)
             GetTextExtentPoint32(hbdc, s, lstrlen(s), &size);
             x += size.cx + 4;
 
-            // Display cents
-            sprintf(s, "%+4.2lf¢", c * 100.0);
-            TextOut(hbdc, x, y, s, lstrlen(s));
-
-            GetTextExtentPoint32(hbdc, s, lstrlen(s), &size);
-            x += size.cx + 4;
-
-            // Display reference
-            sprintf(s, "%4.2lfHz", fr);
-            TextOut(hbdc, x, y, s, lstrlen(s));
-
-            GetTextExtentPoint32(hbdc, s, lstrlen(s), &size);
-            x += size.cx + 4;
-
             // Display frequency
-            sprintf(s, "%4.2lfHz", f);
+            sprintf(s, "%4.2lf Hz", f);
             TextOut(hbdc, x, y, s, lstrlen(s));
 
             GetTextExtentPoint32(hbdc, s, lstrlen(s), &size);
             x += size.cx + 4;
 
-            // Display difference
-            sprintf(s, "%+4.2lfHz", f - fr);
+            // Display cents
+            sprintf(s, ", %+4.2lf c", c * 100.0);
             TextOut(hbdc, x, y, s, lstrlen(s));
+
+
+            if (i > 0) 
+            {
+                GetTextExtentPoint32(hbdc, s, lstrlen(s), &size);
+                x += size.cx + 4;
+
+                // Display beat
+                sprintf(s, ", %4.2lf beat", f - f_prev);
+                TextOut(hbdc, x, y, s, lstrlen(s));
+
+                GetTextExtentPoint32(hbdc, s, lstrlen(s), &size);
+                x += size.cx + 4;
+
+                // Display cent difference
+                sprintf(s, ", %4.2lf dc", (c - c_prev) * 100.0);
+                TextOut(hbdc, x, y, s, lstrlen(s));
+
+            }
 
             GetTextExtentPoint32(hbdc, s, lstrlen(s), &size);
             y += size.cy;
+
+            f_prev = f;
+            c_prev = c;
         }
     }
 
@@ -3006,7 +3017,7 @@ BOOL DrawDisplay(HDC hdc, RECT rect)
         SetTextAlign(hbdc, TA_BOTTOM|TA_RIGHT);
 
         // Display cents
-        sprintf(s, "%+4.2f¢", display.c * 100.0);
+        sprintf(s, "%+4.2fc", display.c * 100.0);
         TextOut(hbdc, width - 8, y, s, lstrlen(s));
 
         // Select medium font
