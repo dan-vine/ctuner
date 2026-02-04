@@ -32,6 +32,10 @@
 #include <commctrl.h>
 #include <windowsx.h>
 
+#include "fft.h"
+#include "drawing.h"
+#include "audio.h"
+
 // Macros
 #define Length(a) (sizeof(a) / sizeof(a[0]))
 
@@ -199,12 +203,6 @@ enum
 // Structs
 typedef struct
 {
-    double r;
-    double i;
-} complex;
-
-typedef struct
-{
     double f;
     double fr;
     int n;
@@ -337,55 +335,54 @@ typedef struct
 } FILTER;
 
 // Global handle
-HINSTANCE hInst;
+extern HINSTANCE hInst;
 
 // Gdiplus token
-ULONG_PTR token;
+extern ULONG_PTR token;
 
 // Gdiplus input
-Gdiplus::GdiplusStartupInput input;
+extern Gdiplus::GdiplusStartupInput input;
 
 // Global data
-WINDOW window;
-WINDOW options;
-WINDOW filters;
+extern WINDOW window;
+extern WINDOW options;
+extern WINDOW filters;
 
-TOOL toolbar;
-TOOLTIP tooltip;
-SCOPE scope;
-SPECTRUM spectrum;
-DISPLAY display;
-STROBE strobe;
-STAFF staff;
-METER meter;
+extern TOOL toolbar;
+extern TOOLTIP tooltip;
+extern SCOPE scope;
+extern SPECTRUM spectrum;
+extern DISPLAY display;
+extern STROBE strobe;
+extern STAFF staff;
+extern METER meter;
 
-BUTTON button;
+extern BUTTON button;
 
-TOOL key;
-TOOL zoom;
-TOOL text;
-TOOL lock;
-TOOL down;
-TOOL mult;
-TOOL fund;
-TOOL note;
-TOOL filt;
-TOOL group;
-TOOL enable;
-TOOL expand;
-TOOL updown;
-TOOL colours;
-TOOL transpose;
-TOOL reference;
-TOOL temperament;
+extern TOOL key;
+extern TOOL zoom;
+extern TOOL text;
+extern TOOL lock;
+extern TOOL down;
+extern TOOL mult;
+extern TOOL fund;
+extern TOOL note;
+extern TOOL filt;
+extern TOOL group;
+extern TOOL enable;
+extern TOOL expand;
+extern TOOL updown;
+extern TOOL colours;
+extern TOOL transpose;
+extern TOOL reference;
+extern TOOL temperament;
 
-BOXES boxes;
-AUDIO audio;
-FILTER filter;
+extern BOXES boxes;
+extern AUDIO audio;
+extern FILTER filter;
 
 // Temperaments data
-double temperaments[32][12] =
-#include "Temperaments.h"
+extern double temperaments[32][12];
 
 // Function prototypes
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int);
@@ -409,14 +406,6 @@ BOOL DisplayFilters(WPARAM, LPARAM);
 BOOL DisplayOptions(WPARAM, LPARAM);
 BOOL DisplayOptionsMenu(HWND, POINTS);
 BOOL DownClicked(WPARAM, LPARAM);
-BOOL DrawDisplay(HDC, RECT);
-BOOL DrawItem(WPARAM, LPARAM);
-BOOL DrawLock(HDC, int, int);
-BOOL DrawMeter(HDC, RECT);
-BOOL DrawScope(HDC, RECT);
-BOOL DrawSpectrum(HDC, RECT);
-BOOL DrawStaff(HDC, RECT);
-BOOL DrawStrobe(HDC, RECT);
 BOOL EditReference(WPARAM, LPARAM);
 BOOL EnableClicked(WPARAM, LPARAM);
 BOOL ExpandClicked(WPARAM, LPARAM);
@@ -438,8 +427,5 @@ BOOL WindowResizing(HWND, WPARAM, LPARAM);
 BOOL ZoomClicked(WPARAM, LPARAM);
 VOID CALLBACK MeterCallback(PVOID, BOOL);
 VOID CALLBACK StrobeCallback(PVOID, BOOL);
-DWORD WINAPI AudioThread(LPVOID);
-VOID WaveInData(WPARAM, LPARAM);
-VOID fftr(complex[], int);
 
 #endif
