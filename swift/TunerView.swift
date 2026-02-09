@@ -44,8 +44,8 @@ class TunerView: NSView
     {
         super.draw(dirtyRect)
 
-        // Drawing code here.
-        rect = DrawEdge(dirtyRect)
+        // Drawing code here - use bounds, not dirtyRect
+        rect = DrawEdge(bounds)
         width = rect.width
         height = rect.height
     }

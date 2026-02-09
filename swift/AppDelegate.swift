@@ -385,13 +385,36 @@ class AppDelegate: NSObject, NSApplicationDelegate
         window.title = applicationName
         window.center()
 
-        // Views
-        scopeView = ScopeView()
-        spectrumView = SpectrumView()
-        displayView = DisplayView()
-        strobeView = StrobeView()
-        staffView = StaffView()
-        meterView = MeterView()
+        // Calculate layout dimensions
+        // Height ratios: scope=1, spectrum=1, display=3.25, staff=1.375, meter=2.234
+        let inset: CGFloat = 20
+        let spacing: CGFloat = 8
+        let viewWidth = kWidth - (inset * 2)
+        let totalRatio: CGFloat = 1 + 1 + 3.25 + 1.375 + 2.234  // 8.859
+        let availableHeight = kHeight - (inset * 2) - (spacing * 4)
+        let unit = availableHeight / totalRatio
+
+        // Calculate heights
+        let scopeH = unit * 1.0
+        let spectrumH = unit * 1.0
+        let displayH = unit * 3.25
+        let staffH = unit * 1.375
+        let meterH = unit * 2.234
+
+        // Calculate Y positions (from bottom up, Cocoa coordinates)
+        let meterY = inset
+        let staffY = meterY + meterH + spacing
+        let displayY = staffY + staffH + spacing
+        let spectrumY = displayY + displayH + spacing
+        let scopeY = spectrumY + spectrumH + spacing
+
+        // Create views with explicit frames
+        scopeView = ScopeView(frame: NSMakeRect(inset, scopeY, viewWidth, scopeH))
+        spectrumView = SpectrumView(frame: NSMakeRect(inset, spectrumY, viewWidth, spectrumH))
+        displayView = DisplayView(frame: NSMakeRect(inset, displayY, viewWidth, displayH))
+        staffView = StaffView(frame: NSMakeRect(inset, staffY, viewWidth, staffH))
+        strobeView = StrobeView(frame: NSMakeRect(inset, staffY, viewWidth, staffH))
+        meterView = MeterView(frame: NSMakeRect(inset, meterY, viewWidth, meterH))
 
         // Tooltips
         scopeView.toolTip = "Scope - click to filter audio"
@@ -409,66 +432,16 @@ class AppDelegate: NSObject, NSApplicationDelegate
         staffView.layerContentsRedrawPolicy = .onSetNeedsDisplay
         meterView.layerContentsRedrawPolicy = .onSetNeedsDisplay
 
-        // Stack
-        stack = NSStackView(views: [scopeView, spectrumView, displayView,
-                                    strobeView, staffView, meterView])
+        // Hide strobe by default (staff is shown)
+        strobeView.isHidden = true
 
-        // View height constraints
-        let spectrumHeight = NSLayoutConstraint(item: spectrumView as Any,
-                                                attribute: .height,
-                                                relatedBy: .equal,
-                                                toItem: scopeView as Any,
-                                                attribute: .height,
-                                                multiplier: 1,
-                                                constant: 0)
-
-        let displayHeight = NSLayoutConstraint(item: displayView as Any,
-                                               attribute: .height,
-                                               relatedBy: .equal,
-                                               toItem: spectrumView as Any,
-                                               attribute: .height,
-                                               multiplier: 3.25,
-                                               constant: 0)
-
-        let strobeHeight = NSLayoutConstraint(item: strobeView as Any,
-                                              attribute: .height,
-                                              relatedBy: .equal,
-                                              toItem: spectrumView as Any,
-                                              attribute: .height,
-                                              multiplier: 1.375,
-                                              constant: 0)
-
-        let staffHeight = NSLayoutConstraint(item: staffView as Any,
-                                             attribute: .height,
-                                             relatedBy: .equal,
-                                             toItem: spectrumView as Any,
-                                             attribute: .height,
-                                             multiplier: 1.375,
-                                             constant: 0)
-
-        let meterHeight = NSLayoutConstraint(item: meterView as Any,
-                                             attribute: .height,
-                                             relatedBy: .equal,
-                                             toItem: strobeView as Any,
-                                             attribute: .height,
-                                             multiplier: 1.625,
-                                             constant: 0)
-
-        // Add constraints
-        stack.addConstraint(spectrumHeight)
-        stack.addConstraint(displayHeight)
-        stack.addConstraint(strobeHeight)
-        stack.addConstraint(staffHeight)
-        stack.addConstraint(meterHeight)
-
-        // Config stack
-        stack.orientation = .vertical
-        stack.spacing = 8
-        stack.edgeInsets = NSEdgeInsets(top: 20, left: 20,
-                                        bottom: 20, right: 20)
-
-        // Window content
-        window.contentView = stack
+        // Add views directly to window's content view
+        window.contentView!.addSubview(scopeView)
+        window.contentView!.addSubview(spectrumView)
+        window.contentView!.addSubview(displayView)
+        window.contentView!.addSubview(staffView)
+        window.contentView!.addSubview(strobeView)
+        window.contentView!.addSubview(meterView)
         window.makeKeyAndOrderFront(self)
         window.makeFirstResponder(displayView)
         window.makeMain()
