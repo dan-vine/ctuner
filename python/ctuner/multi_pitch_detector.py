@@ -107,6 +107,9 @@ class MultiPitchDetector:
         self.downsample = False  # Downsample spectrum for low notes
         self.octave_filter = True  # Limit search to one octave above fundamental (C++ behavior)
 
+        # Detection threshold (can be lowered for quiet inputs)
+        self.min_magnitude = K_MIN
+
     def process(self, samples: np.ndarray) -> MultiPitchResult:
         """
         Process audio samples and detect multiple pitches.
@@ -187,7 +190,7 @@ class MultiPitchDetector:
 
         # Find maximum
         max_val = np.max(xa)
-        if max_val < K_MIN:
+        if max_val < self.min_magnitude:
             return MultiPitchResult()
 
         # Find maxima (peaks in spectrum)
@@ -204,7 +207,7 @@ class MultiPitchDetector:
                 break
 
             # Skip if below threshold
-            if xa[i] <= K_MIN or xa[i] <= max_val / 4:
+            if xa[i] <= self.min_magnitude or xa[i] <= max_val / 4:
                 continue
 
             # Peak detection: rising then falling
@@ -320,6 +323,15 @@ class MultiPitchDetector:
         detecting octave pairs like A3+A4.
         """
         self.octave_filter = enabled
+
+    def set_min_magnitude(self, threshold: float):
+        """Set minimum magnitude threshold for peak detection.
+
+        Lower values increase sensitivity but may detect more noise.
+        Default is 0.5 (matching C++ implementation).
+        For quiet microphone input, try 0.1 or lower.
+        """
+        self.min_magnitude = max(0.01, threshold)
 
     def reset(self):
         """Reset internal state."""
