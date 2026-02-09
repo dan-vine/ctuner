@@ -79,6 +79,23 @@ class SpectrumView(QFrame):
         self._peak_frequencies = []
         self.update()
 
+    def set_zoom(self, center_freq: float | None, zoom_enabled: bool = True):
+        """
+        Set zoom to focus on a frequency range.
+
+        Args:
+            center_freq: Center frequency to zoom to (None to reset to full range)
+            zoom_enabled: Whether zoom is enabled
+        """
+        if not zoom_enabled or center_freq is None:
+            self._min_freq = 20.0
+            self._max_freq = 2000.0
+        else:
+            # Zoom to +/- 1 octave around the center frequency
+            self._min_freq = max(20.0, center_freq / 2)
+            self._max_freq = min(2000.0, center_freq * 2)
+        self.update()
+
     def paintEvent(self, event):
         """Paint the spectrum display."""
         painter = QPainter(self)

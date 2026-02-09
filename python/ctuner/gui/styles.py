@@ -175,3 +175,89 @@ def get_tuning_gradient(cents: float) -> str:
     """Get gradient for tuning meter based on cents position."""
     color = get_cents_color(cents)
     return f"qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 {METER_BACKGROUND}, stop:0.5 {color}, stop:1 {METER_BACKGROUND})"
+
+
+# Settings panel stylesheet
+SETTINGS_PANEL_STYLE = f"""
+QFrame#settingsPanel {{
+    background-color: {PANEL_BACKGROUND};
+    border: 1px solid {BORDER_COLOR};
+    border-radius: 8px;
+}}
+QFrame#settingsPanel QCheckBox {{
+    color: {TEXT_COLOR};
+    spacing: 8px;
+    background-color: transparent;
+}}
+QFrame#settingsPanel QCheckBox::indicator {{
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1px solid {BORDER_COLOR};
+    background-color: {METER_BACKGROUND};
+}}
+QFrame#settingsPanel QCheckBox::indicator:checked {{
+    background-color: {ACCENT_GREEN};
+    border-color: {ACCENT_GREEN};
+}}
+QFrame#settingsPanel QCheckBox::indicator:hover {{
+    border-color: {ACCENT_GREEN};
+}}
+QFrame#settingsPanel QSlider::groove:horizontal {{
+    border: 1px solid {BORDER_COLOR};
+    height: 6px;
+    background: {METER_BACKGROUND};
+    border-radius: 3px;
+}}
+QFrame#settingsPanel QSlider::handle:horizontal {{
+    background: {TEXT_COLOR};
+    border: 1px solid {BORDER_COLOR};
+    width: 14px;
+    height: 14px;
+    margin: -5px 0;
+    border-radius: 7px;
+}}
+QFrame#settingsPanel QSlider::handle:horizontal:hover {{
+    background: {ACCENT_GREEN};
+    border-color: {ACCENT_GREEN};
+}}
+QFrame#settingsPanel QSlider::sub-page:horizontal {{
+    background: {ACCENT_GREEN};
+    border-radius: 3px;
+}}
+QFrame#settingsPanel QLabel {{
+    background-color: transparent;
+}}
+QFrame#settingsPanel QComboBox {{
+    min-width: 140px;
+    background-color: {PANEL_BACKGROUND};
+}}
+QFrame#settingsPanel QSlider {{
+    background-color: transparent;
+    min-width: 80px;
+}}
+QFrame#settingsPanel QDoubleSpinBox {{
+    background-color: {PANEL_BACKGROUND};
+}}
+"""
+
+# Toggle button style for settings expansion
+TOGGLE_BUTTON_STYLE = f"""
+QPushButton#settingsToggle {{
+    background-color: transparent;
+    border: 1px solid {BORDER_COLOR};
+    border-radius: 4px;
+    padding: 5px 12px;
+    color: {TEXT_SECONDARY};
+    font-size: 12px;
+}}
+QPushButton#settingsToggle:hover {{
+    background-color: {METER_BACKGROUND};
+    border-color: {ACCENT_GREEN};
+    color: {TEXT_COLOR};
+}}
+QPushButton#settingsToggle:checked {{
+    background-color: {METER_BACKGROUND};
+    color: {TEXT_COLOR};
+}}
+"""
