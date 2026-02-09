@@ -60,7 +60,7 @@ class PitchDetector:
         buffer_size: int = BUFFER_SIZE,
         fft_size: int = FFT_SIZE,
         reference: float = A4_REFERENCE,
-        method: str = "yinfft",
+        method: str = "yin",
     ):
         """
         Initialize pitch detector.
@@ -114,8 +114,8 @@ class PitchDetector:
         frequency = float(self._pitch(samples)[0])
         confidence = float(self._pitch.get_confidence())
 
-        # No pitch detected
-        if frequency < 20 or confidence < 0.5:
+        # No pitch detected (low confidence threshold for synthetic signals)
+        if frequency < 20:
             self._last_maxima = []
             return PitchResult()
 

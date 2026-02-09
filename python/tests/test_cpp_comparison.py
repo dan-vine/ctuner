@@ -245,10 +245,19 @@ class TestCppComparison:
         assert freq_diff < 2.0, \
             f"Frequency difference too large: {freq_diff:.2f} Hz"
 
-        # Compare cents (within 5 cents tolerance)
+        # Compare cents with frequency-dependent tolerance
+        # Low frequencies have less resolution, so allow more tolerance
+        frequency = tc.frequency
+        if frequency < 100:
+            cents_tolerance = 5.0  # Bass notes - FFT resolution limited
+        elif frequency < 200:
+            cents_tolerance = 3.0  # Low notes
+        else:
+            cents_tolerance = 2.0  # Higher notes - tighter tolerance
+
         cents_diff = abs(py["cents_median"] - cpp["cents_median"])
-        assert cents_diff < 5.0, \
-            f"Cents difference too large: {cents_diff:.2f}"
+        assert cents_diff < cents_tolerance, \
+            f"Cents difference too large: {cents_diff:.2f} (tolerance: {cents_tolerance} for {frequency:.0f} Hz)"
 
 
 # Command-line entry point for generating test data
