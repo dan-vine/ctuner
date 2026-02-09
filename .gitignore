@@ -5,3 +5,5 @@
 *.app
 *.dSYM
 *.dmg
+windows/build/
+windows/imgui/
