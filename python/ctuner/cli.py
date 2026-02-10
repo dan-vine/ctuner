@@ -3,37 +3,26 @@ Command-line interface for the tuner
 """
 
 import time
-from .tuner import Tuner
-from .pitch_detector import PitchResult
-from .constants import A4_REFERENCE
+import numpy as np
+import sounddevice as sd
+
+from .multi_pitch_detector import MultiPitchDetector, MultiPitchResult
+from .constants import SAMPLE_RATE, BUFFER_SIZE, A4_REFERENCE
 
 
 def main():
     """Simple command-line tuner"""
+    detector = MultiPitchDetector(
+        sample_rate=SAMPLE_RATE,
+        reference=A4_REFERENCE,
+    )
 
-    def on_pitch(result: PitchResult):
-        if result.valid:
-            # Build cents bar: |-------|O|-------|
-            bar_width = 30
-            center = bar_width // 2
-            pos = int(center + (result.cents / 50) * center)
-            pos = max(0, min(bar_width - 1, pos))
+    last_result: MultiPitchResult = MultiPitchResult()
 
-            bar = ["-"] * bar_width
-            bar[center] = "|"
-            bar[pos] = "O"
-
-            cents_str = f"{result.cents:+5.1f}"
-            print(
-                f"\r{result.note_name:2}{result.octave} "
-                f"{result.frequency:7.2f} Hz "
-                f"[{''.join(bar)}] "
-                f"{cents_str} cents  ",
-                end="",
-                flush=True,
-            )
-
-    tuner = Tuner(callback=on_pitch)
+    def audio_callback(indata, frames, time_info, status):
+        nonlocal last_result
+        samples = indata[:, 0]  # Mono
+        last_result = detector.process(samples)
 
     print("Instrument Tuner")
     print("================")
@@ -41,13 +30,40 @@ def main():
     print("Press Ctrl+C to exit\n")
 
     try:
-        tuner.start()
-        while True:
-            time.sleep(0.1)
+        with sd.InputStream(
+            samplerate=SAMPLE_RATE,
+            blocksize=BUFFER_SIZE,
+            channels=1,
+            dtype=np.float32,
+            callback=audio_callback,
+        ):
+            while True:
+                if last_result.valid and last_result.maxima:
+                    primary = last_result.maxima[0]
+                    cents = primary.cents
+
+                    # Build cents bar: |-------|O|-------|
+                    bar_width = 30
+                    center = bar_width // 2
+                    pos = int(center + (cents / 50) * center)
+                    pos = max(0, min(bar_width - 1, pos))
+
+                    bar = ["-"] * bar_width
+                    bar[center] = "|"
+                    bar[pos] = "O"
+
+                    cents_str = f"{cents:+5.1f}"
+                    print(
+                        f"\r{primary.note_name:2}{primary.octave} "
+                        f"{primary.frequency:7.2f} Hz "
+                        f"[{''.join(bar)}] "
+                        f"{cents_str} cents  ",
+                        end="",
+                        flush=True,
+                    )
+                time.sleep(0.05)
     except KeyboardInterrupt:
         print("\n\nStopping...")
-    finally:
-        tuner.stop()
 
 
 if __name__ == "__main__":

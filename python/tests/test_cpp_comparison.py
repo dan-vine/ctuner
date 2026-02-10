@@ -13,14 +13,13 @@ To use:
 """
 
 import json
-import struct
 import wave
 from pathlib import Path
 from dataclasses import dataclass, asdict
 import numpy as np
 import pytest
 
-from ctuner import PitchDetector, SAMPLE_RATE, BUFFER_SIZE
+from ctuner import MultiPitchDetector, SAMPLE_RATE, BUFFER_SIZE
 
 
 # Test data directory
@@ -120,11 +119,11 @@ class TestPythonResults:
         """Ensure test data exists."""
         if not TEST_DATA_DIR.exists():
             generate_test_files()
-        self.detector = PitchDetector()
+        self.detector = MultiPitchDetector()
 
     def process_file(self, filename: Path) -> dict:
         """Process a WAV file and return aggregated results."""
-        samples, sample_rate = load_wav(filename)
+        samples, _ = load_wav(filename)
 
         results = []
         num_buffers = len(samples) // BUFFER_SIZE
@@ -133,13 +132,13 @@ class TestPythonResults:
             start = i * BUFFER_SIZE
             end = start + BUFFER_SIZE
             result = self.detector.process(samples[start:end])
-            if result.valid:
+            if result.valid and result.maxima:
+                primary = result.maxima[0]
                 results.append({
-                    "frequency": result.frequency,
-                    "note_name": result.note_name,
-                    "octave": result.octave,
-                    "cents": result.cents,
-                    "confidence": result.confidence,
+                    "frequency": primary.frequency,
+                    "note_name": primary.note_name,
+                    "octave": primary.octave,
+                    "cents": primary.cents,
                 })
 
         if not results:

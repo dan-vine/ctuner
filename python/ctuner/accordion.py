@@ -15,6 +15,7 @@ from .constants import (
     A4_REFERENCE,
 )
 from .multi_pitch_detector import MultiPitchDetector, Maximum
+from .temperaments import Temperament
 
 
 @dataclass
@@ -75,7 +76,7 @@ class AccordionDetector:
         """
         self.sample_rate = sample_rate
         self.reference = reference
-        self.max_reeds = min(max(2, max_reeds), 4)
+        self.max_reeds = min(max(1, max_reeds), 4)
         self.reed_spread_cents = reed_spread_cents
 
         # Internal multi-pitch detector with accordion-specific settings
@@ -234,11 +235,44 @@ class AccordionDetector:
 
     def set_max_reeds(self, count: int):
         """Set maximum number of reeds to detect."""
-        self.max_reeds = min(max(2, count), 4)
+        self.max_reeds = min(max(1, count), 4)
 
     def set_reed_spread(self, cents: float):
         """Set maximum cents spread to consider as same note."""
         self.reed_spread_cents = max(10.0, min(100.0, cents))
+
+    def set_temperament(self, temperament: Temperament):
+        """Set musical temperament for reference frequency calculation."""
+        self._detector.set_temperament(temperament)
+
+    def set_key(self, key: int):
+        """Set key for temperament (0=C, 1=C#, ..., 11=B)."""
+        self._detector.set_key(key)
+
+    def set_octave_filter(self, enabled: bool):
+        """Enable/disable octave filter.
+
+        When enabled: limits search to one octave above fundamental.
+        When disabled (default for accordion): allows detecting closely-spaced
+        frequencies for multiple reeds playing the same note.
+        """
+        self._detector.set_octave_filter(enabled)
+
+    def set_sensitivity(self, threshold: float):
+        """Set detection sensitivity (min_magnitude threshold).
+
+        Lower values increase sensitivity but may detect more noise.
+        Range: 0.05 - 0.5, default 0.1
+        """
+        self._detector.set_min_magnitude(max(0.05, min(0.5, threshold)))
+
+    def set_fundamental_filter(self, enabled: bool):
+        """Enable/disable fundamental filter (only detect harmonics)."""
+        self._detector.set_fundamental_filter(enabled)
+
+    def set_downsample(self, enabled: bool):
+        """Enable/disable downsampling for better low frequency detection."""
+        self._detector.set_downsample(enabled)
 
     def reset(self):
         """Reset internal state."""
