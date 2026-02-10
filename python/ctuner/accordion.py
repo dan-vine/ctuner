@@ -7,14 +7,14 @@ intentional detuning (tremolo/musette effects).
 """
 
 from dataclasses import dataclass, field
+
 import numpy as np
-from typing import Optional
 
 from .constants import (
-    SAMPLE_RATE,
     A4_REFERENCE,
+    SAMPLE_RATE,
 )
-from .multi_pitch_detector import MultiPitchDetector, Maximum
+from .multi_pitch_detector import Maximum, MultiPitchDetector
 from .temperaments import Temperament
 
 
@@ -35,7 +35,7 @@ class AccordionResult:
     ref_frequency: float = 0.0  # Reference frequency for this note
     reeds: list[ReedInfo] = field(default_factory=list)
     beat_frequencies: list[float] = field(default_factory=list)  # |f1-f2|, |f2-f3|, etc.
-    spectrum_data: Optional[tuple[np.ndarray, np.ndarray]] = None  # (frequencies, magnitudes)
+    spectrum_data: tuple[np.ndarray, np.ndarray] | None = None  # (frequencies, magnitudes)
 
     @property
     def reed_count(self) -> int:
@@ -90,8 +90,8 @@ class AccordionDetector:
         self._detector.set_min_magnitude(0.1)
 
         # FFT state for spectrum display
-        self._fft_freqs: Optional[np.ndarray] = None
-        self._fft_mags: Optional[np.ndarray] = None
+        self._fft_freqs: np.ndarray | None = None
+        self._fft_mags: np.ndarray | None = None
 
     def process(self, samples: np.ndarray) -> AccordionResult:
         """
@@ -222,7 +222,7 @@ class AccordionDetector:
         if max_mag > 0:
             self._fft_mags = self._fft_mags / max_mag
 
-    def _get_spectrum_tuple(self) -> Optional[tuple[np.ndarray, np.ndarray]]:
+    def _get_spectrum_tuple(self) -> tuple[np.ndarray, np.ndarray] | None:
         """Get spectrum data as tuple if both arrays are available."""
         if self._fft_freqs is not None and self._fft_mags is not None:
             return (self._fft_freqs, self._fft_mags)

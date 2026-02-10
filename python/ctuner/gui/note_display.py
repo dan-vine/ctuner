@@ -2,14 +2,14 @@
 Note display widget - large note name with subscript octave.
 """
 
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QVBoxLayout
 
 from .styles import (
+    BORDER_COLOR,
     PANEL_BACKGROUND,
     TEXT_COLOR,
     TEXT_SECONDARY,
-    BORDER_COLOR,
 )
 
 

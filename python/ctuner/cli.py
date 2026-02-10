@@ -3,11 +3,12 @@ Command-line interface for the tuner
 """
 
 import time
+
 import numpy as np
 import sounddevice as sd
 
+from .constants import A4_REFERENCE, BUFFER_SIZE, SAMPLE_RATE
 from .multi_pitch_detector import MultiPitchDetector, MultiPitchResult
-from .constants import SAMPLE_RATE, BUFFER_SIZE, A4_REFERENCE
 
 
 def main():

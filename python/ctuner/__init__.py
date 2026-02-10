@@ -2,10 +2,10 @@
 ctuner - Instrument tuner with temperament support
 """
 
-from .constants import SAMPLE_RATE, BUFFER_SIZE, A4_REFERENCE, NOTE_NAMES
-from .multi_pitch_detector import MultiPitchDetector, MultiPitchResult, Maximum
-from .temperaments import Temperament, TEMPERAMENTS
 from .accordion import AccordionDetector, AccordionResult, ReedInfo
+from .constants import A4_REFERENCE, BUFFER_SIZE, NOTE_NAMES, SAMPLE_RATE
+from .multi_pitch_detector import Maximum, MultiPitchDetector, MultiPitchResult
+from .temperaments import TEMPERAMENTS, Temperament
 
 __version__ = "0.1.0"
 __all__ = [

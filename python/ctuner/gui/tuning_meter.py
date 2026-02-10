@@ -2,17 +2,17 @@
 Tuning meter widget - horizontal bar showing cents deviation.
 """
 
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QBrush, QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Qt, QRectF
-from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QLinearGradient
 
 from .styles import (
-    METER_BACKGROUND,
     ACCENT_GREEN,
-    WARNING_ORANGE,
-    ERROR_RED,
-    TEXT_COLOR,
     BORDER_COLOR,
+    ERROR_RED,
+    METER_BACKGROUND,
+    TEXT_COLOR,
+    WARNING_ORANGE,
 )
 
 
@@ -123,8 +123,8 @@ class TuningMeter(QWidget):
                 (indicator_x + triangle_size, margin - 2),
                 (indicator_x, margin + 6),
             ]
-            from PySide6.QtGui import QPolygonF
             from PySide6.QtCore import QPointF
+            from PySide6.QtGui import QPolygonF
             polygon = QPolygonF([QPointF(x, y) for x, y in points])
             painter.drawPolygon(polygon)
 

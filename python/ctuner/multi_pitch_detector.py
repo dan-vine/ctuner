@@ -6,21 +6,18 @@ and finding multiple peaks, similar to the C++ implementation.
 """
 
 from dataclasses import dataclass, field
+
 import numpy as np
-from typing import Optional
 
 from .constants import (
-    SAMPLE_RATE,
-    BUFFER_SIZE,
-    FFT_SIZE,
     A4_REFERENCE,
-    C5_OFFSET,
     A_OFFSET,
-    OCTAVE,
+    C5_OFFSET,
     NOTE_NAMES,
+    OCTAVE,
+    SAMPLE_RATE,
 )
-from .temperaments import Temperament, TEMPERAMENT_RATIOS
-
+from .temperaments import TEMPERAMENT_RATIOS, Temperament
 
 # Constants matching C++ implementation
 K_SAMPLES = 16384  # FFT size

@@ -2,19 +2,18 @@
 Reed panel widget - complete panel for one reed.
 """
 
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QFrame, QLabel, QVBoxLayout
 
-from .tuning_meter import TuningMeter
 from .styles import (
-    PANEL_BACKGROUND,
-    TEXT_COLOR,
-    TEXT_SECONDARY,
-    BORDER_COLOR,
     ACCENT_GREEN,
-    WARNING_ORANGE,
+    BORDER_COLOR,
     ERROR_RED,
+    PANEL_BACKGROUND,
+    TEXT_SECONDARY,
+    WARNING_ORANGE,
 )
+from .tuning_meter import TuningMeter
 
 
 class ReedPanel(QFrame):

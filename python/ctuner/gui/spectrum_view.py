@@ -3,17 +3,17 @@ Spectrum view widget - FFT spectrum display showing reed peaks.
 """
 
 import numpy as np
-from PySide6.QtWidgets import QFrame, QVBoxLayout
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QPainterPath
+from PySide6.QtGui import QBrush, QColor, QPainter, QPainterPath, QPen
+from PySide6.QtWidgets import QFrame
 
 from .styles import (
-    PANEL_BACKGROUND,
     ACCENT_GREEN,
-    TEXT_COLOR,
-    TEXT_SECONDARY,
     BORDER_COLOR,
     METER_BACKGROUND,
+    PANEL_BACKGROUND,
+    TEXT_COLOR,
+    TEXT_SECONDARY,
 )
 
 

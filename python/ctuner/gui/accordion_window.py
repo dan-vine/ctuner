@@ -3,41 +3,40 @@ Main application window for accordion reed tuning.
 """
 
 import sys
+
 import numpy as np
 import sounddevice as sd
-
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication,
-    QMainWindow,
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QGridLayout,
-    QLabel,
+    QCheckBox,
     QComboBox,
     QDoubleSpinBox,
     QFrame,
-    QSizePolicy,
-    QPushButton,
+    QGridLayout,
     QGroupBox,
-    QCheckBox,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QPushButton,
+    QSizePolicy,
     QSlider,
+    QVBoxLayout,
+    QWidget,
 )
-from PySide6.QtCore import Qt, QTimer
 
 from ..accordion import AccordionDetector, AccordionResult
-from ..constants import SAMPLE_RATE, A4_REFERENCE, NOTE_NAMES
+from ..constants import A4_REFERENCE, NOTE_NAMES, SAMPLE_RATE
 from ..temperaments import Temperament
-
-from .reed_panel import ReedPanel
 from .note_display import NoteDisplay
+from .reed_panel import ReedPanel
 from .spectrum_view import SpectrumView
 from .styles import (
+    BORDER_COLOR,
     MAIN_WINDOW_STYLE,
     PANEL_BACKGROUND,
-    BORDER_COLOR,
-    TEXT_SECONDARY,
     SETTINGS_PANEL_STYLE,
+    TEXT_SECONDARY,
     TOGGLE_BUTTON_STYLE,
 )
 
