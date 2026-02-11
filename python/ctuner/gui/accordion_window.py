@@ -6,7 +6,7 @@ import sys
 
 import numpy as np
 import sounddevice as sd
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QSettings, Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication,
     QCheckBox,
@@ -18,9 +18,11 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QSizePolicy,
     QSlider,
+    QSpacerItem,
     QVBoxLayout,
     QWidget,
 )
@@ -51,6 +53,22 @@ class AccordionWindow(QMainWindow):
     - Individual reed panels (2-4)
     - Settings for reference frequency and number of reeds
     """
+
+    # Default settings values
+    DEFAULTS = {
+        'num_reeds': 3,
+        'reference': 440.0,
+        'octave_filter': False,
+        'fundamental_filter': False,
+        'downsample': False,
+        'sensitivity': 10,
+        'reed_spread': 50,
+        'temperament': 8,  # Equal
+        'key': 0,  # C
+        'transpose': 0,
+        'zoom_spectrum': True,
+        'settings_expanded': False,
+    }
 
     def __init__(self):
         super().__init__()
@@ -92,6 +110,9 @@ class AccordionWindow(QMainWindow):
 
         # Last result for display
         self._last_result: AccordionResult | None = None
+
+        # Load saved settings (must be after UI setup)
+        self._load_settings()
 
         # Start audio
         self._start_audio()
@@ -213,7 +234,7 @@ class AccordionWindow(QMainWindow):
         panel = QFrame()
         panel.setObjectName("settingsPanel")
         panel.setStyleSheet(SETTINGS_PANEL_STYLE)
-        panel.setMinimumHeight(280)
+        panel.setMinimumHeight(340)
 
         layout = QGridLayout(panel)
         layout.setContentsMargins(15, 15, 15, 15)
@@ -374,6 +395,15 @@ class AccordionWindow(QMainWindow):
 
         layout.addWidget(audio_group, 1, 1)  # Row 1, Col 1
 
+        # Add vertical spacer to push reset button to bottom
+        layout.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding), 2, 0, 1, 2)
+
+        # Reset to Defaults button (spans both columns)
+        reset_btn = QPushButton("Reset to Defaults")
+        reset_btn.setToolTip("Reset all settings to their default values")
+        reset_btn.clicked.connect(self._reset_to_defaults)
+        layout.addWidget(reset_btn, 3, 0, 1, 2)  # Row 3, spans columns 0-1
+
         return panel
 
     def _populate_audio_devices(self):
@@ -398,8 +428,8 @@ class AccordionWindow(QMainWindow):
 
         # Resize window to accommodate settings panel
         if checked:
-            self.setMinimumHeight(900)
-            self.resize(self.width(), 900)
+            self.setMinimumHeight(960)
+            self.resize(self.width(), 960)
         else:
             self.setMinimumHeight(600)
             self.resize(self.width(), 600)
@@ -584,9 +614,137 @@ class AccordionWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Handle window close."""
+        self._save_settings()
         self._stop_audio()
         self._timer.stop()
         event.accept()
+
+    def _load_settings(self):
+        """Load saved settings from QSettings."""
+        settings = QSettings("ctuner", "AccordionTuner")
+
+        # Number of reeds
+        num_reeds = settings.value("num_reeds", self.DEFAULTS['num_reeds'], type=int)
+        self._reeds_combo.setCurrentIndex(num_reeds - 1)
+
+        # Reference frequency
+        reference = settings.value("reference", self.DEFAULTS['reference'], type=float)
+        self._ref_spinbox.setValue(reference)
+
+        # Detection settings
+        octave_filter = settings.value("octave_filter", self.DEFAULTS['octave_filter'], type=bool)
+        self._octave_filter_cb.setChecked(octave_filter)
+
+        fundamental_filter = settings.value("fundamental_filter", self.DEFAULTS['fundamental_filter'], type=bool)
+        self._fundamental_filter_cb.setChecked(fundamental_filter)
+
+        downsample = settings.value("downsample", self.DEFAULTS['downsample'], type=bool)
+        self._downsample_cb.setChecked(downsample)
+
+        sensitivity = settings.value("sensitivity", self.DEFAULTS['sensitivity'], type=int)
+        self._sensitivity_slider.setValue(sensitivity)
+
+        reed_spread = settings.value("reed_spread", self.DEFAULTS['reed_spread'], type=int)
+        self._reed_spread_slider.setValue(reed_spread)
+
+        # Tuning settings
+        temperament = settings.value("temperament", self.DEFAULTS['temperament'], type=int)
+        self._temperament_combo.setCurrentIndex(temperament)
+
+        key = settings.value("key", self.DEFAULTS['key'], type=int)
+        self._key_combo.setCurrentIndex(key)
+
+        transpose = settings.value("transpose", self.DEFAULTS['transpose'], type=int)
+        self._transpose_spin.setValue(transpose)
+
+        # Display settings
+        zoom_spectrum = settings.value("zoom_spectrum", self.DEFAULTS['zoom_spectrum'], type=bool)
+        self._zoom_spectrum_cb.setChecked(zoom_spectrum)
+
+        settings_expanded = settings.value("settings_expanded", self.DEFAULTS['settings_expanded'], type=bool)
+        if settings_expanded:
+            self._settings_toggle.setChecked(True)
+            self._toggle_settings(True)
+
+        # Input device (by name)
+        device_name = settings.value("input_device_name", "", type=str)
+        if device_name:
+            for i in range(self._input_combo.count()):
+                if self._input_combo.itemText(i) == device_name:
+                    self._input_combo.setCurrentIndex(i)
+                    break
+
+        # Window geometry
+        geometry = settings.value("window_geometry")
+        if geometry:
+            self.restoreGeometry(geometry)
+
+    def _save_settings(self):
+        """Save current settings to QSettings."""
+        settings = QSettings("ctuner", "AccordionTuner")
+
+        # Number of reeds
+        settings.setValue("num_reeds", self._reeds_combo.currentIndex() + 1)
+
+        # Reference frequency
+        settings.setValue("reference", self._ref_spinbox.value())
+
+        # Detection settings
+        settings.setValue("octave_filter", self._octave_filter_cb.isChecked())
+        settings.setValue("fundamental_filter", self._fundamental_filter_cb.isChecked())
+        settings.setValue("downsample", self._downsample_cb.isChecked())
+        settings.setValue("sensitivity", self._sensitivity_slider.value())
+        settings.setValue("reed_spread", self._reed_spread_slider.value())
+
+        # Tuning settings
+        settings.setValue("temperament", self._temperament_combo.currentIndex())
+        settings.setValue("key", self._key_combo.currentIndex())
+        settings.setValue("transpose", int(self._transpose_spin.value()))
+
+        # Display settings
+        settings.setValue("zoom_spectrum", self._zoom_spectrum_cb.isChecked())
+        settings.setValue("settings_expanded", self._settings_expanded)
+
+        # Input device (by name, not ID which may change)
+        settings.setValue("input_device_name", self._input_combo.currentText())
+
+        # Window geometry
+        settings.setValue("window_geometry", self.saveGeometry())
+
+    def _reset_to_defaults(self):
+        """Reset all settings to their default values."""
+        reply = QMessageBox.question(
+            self,
+            "Reset to Defaults",
+            "Are you sure you want to reset all settings to their default values?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        # Clear stored settings
+        settings = QSettings("ctuner", "AccordionTuner")
+        settings.clear()
+
+        # Reset all widgets to defaults (this triggers their change handlers)
+        self._reeds_combo.setCurrentIndex(self.DEFAULTS['num_reeds'] - 1)
+        self._ref_spinbox.setValue(self.DEFAULTS['reference'])
+        self._octave_filter_cb.setChecked(self.DEFAULTS['octave_filter'])
+        self._fundamental_filter_cb.setChecked(self.DEFAULTS['fundamental_filter'])
+        self._downsample_cb.setChecked(self.DEFAULTS['downsample'])
+        self._sensitivity_slider.setValue(self.DEFAULTS['sensitivity'])
+        self._reed_spread_slider.setValue(self.DEFAULTS['reed_spread'])
+        self._temperament_combo.setCurrentIndex(self.DEFAULTS['temperament'])
+        self._key_combo.setCurrentIndex(self.DEFAULTS['key'])
+        self._transpose_spin.setValue(self.DEFAULTS['transpose'])
+        self._zoom_spectrum_cb.setChecked(self.DEFAULTS['zoom_spectrum'])
+        self._input_combo.setCurrentIndex(0)  # Default device
+
+        # Collapse settings panel if expanded
+        if self._settings_expanded:
+            self._settings_toggle.setChecked(False)
+            self._toggle_settings(False)
 
 
 def main():
