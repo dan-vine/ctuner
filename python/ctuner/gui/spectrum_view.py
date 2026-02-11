@@ -91,9 +91,11 @@ class SpectrumView(QFrame):
             self._min_freq = 20.0
             self._max_freq = 2000.0
         else:
-            # Zoom to +/- 1 octave around the center frequency
-            self._min_freq = max(20.0, center_freq / 2)
-            self._max_freq = min(2000.0, center_freq * 2)
+            # Zoom to +/- 1/3 octave around the center frequency
+            # 2^(1/3) ≈ 1.26, giving a tighter view of the note and its reeds
+            zoom_factor = 1.26
+            self._min_freq = max(20.0, center_freq / zoom_factor)
+            self._max_freq = min(4000.0, center_freq * zoom_factor)
         self.update()
 
     def paintEvent(self, event):

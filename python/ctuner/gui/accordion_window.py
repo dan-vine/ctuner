@@ -404,17 +404,17 @@ class AccordionWindow(QMainWindow):
             self.setMinimumHeight(600)
             self.resize(self.width(), 600)
 
-    def _on_octave_filter_changed(self, state: int):
+    def _on_octave_filter_changed(self, state):
         """Handle octave filter checkbox change."""
-        self._detector.set_octave_filter(state == Qt.Checked)
+        self._detector.set_octave_filter(self._octave_filter_cb.isChecked())
 
-    def _on_fundamental_filter_changed(self, state: int):
+    def _on_fundamental_filter_changed(self, state):
         """Handle fundamental filter checkbox change."""
-        self._detector.set_fundamental_filter(state == Qt.Checked)
+        self._detector.set_fundamental_filter(self._fundamental_filter_cb.isChecked())
 
-    def _on_downsample_changed(self, state: int):
+    def _on_downsample_changed(self, state):
         """Handle downsample checkbox change."""
-        self._detector.set_downsample(state == Qt.Checked)
+        self._detector.set_downsample(self._downsample_cb.isChecked())
 
     def _on_sensitivity_changed(self, value: int):
         """Handle sensitivity slider change."""
@@ -435,13 +435,19 @@ class AccordionWindow(QMainWindow):
         """Handle key combo change."""
         self._detector.set_key(index)
 
-    def _on_lock_display_changed(self, state: int):
+    def _on_lock_display_changed(self, state):
         """Handle lock display checkbox change."""
-        self._lock_display = state == Qt.Checked
+        self._lock_display = self._lock_display_cb.isChecked()
 
-    def _on_zoom_spectrum_changed(self, state: int):
+    def _on_zoom_spectrum_changed(self, state):
         """Handle zoom spectrum checkbox change."""
-        self._zoom_spectrum = state == Qt.Checked
+        # Use isChecked() directly for reliable state detection
+        self._zoom_spectrum = self._zoom_spectrum_cb.isChecked()
+        # Apply zoom change immediately using last known frequency
+        center_freq = None
+        if self._last_result and self._last_result.valid and self._last_result.reeds:
+            center_freq = self._last_result.reeds[0].frequency
+        self._spectrum_view.set_zoom(center_freq, self._zoom_spectrum)
 
     def _on_input_device_changed(self, index: int):
         """Handle input device combo change."""
