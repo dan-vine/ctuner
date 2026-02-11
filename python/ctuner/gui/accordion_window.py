@@ -41,6 +41,7 @@ from .styles import (
     TEXT_SECONDARY,
     TOGGLE_BUTTON_STYLE,
 )
+from .tuning_meter import MultiReedMeter
 
 
 class AccordionWindow(QMainWindow):
@@ -145,6 +146,11 @@ class AccordionWindow(QMainWindow):
         self._reed_container.setSpacing(15)
         self._create_reed_panels()
         main_layout.addLayout(self._reed_container)
+
+        # Unified multi-reed tuning meter (below reed panels)
+        self._multi_meter = MultiReedMeter(max_reeds=4)
+        self._multi_meter.set_num_reeds(self._num_reeds)
+        main_layout.addWidget(self._multi_meter)
 
         # Settings bar (bottom)
         settings_frame = QFrame()
@@ -543,6 +549,7 @@ class AccordionWindow(QMainWindow):
             self._note_display.set_inactive()
             for panel in self._reed_panels:
                 panel.set_inactive()
+            self._multi_meter.set_all_inactive()
             if result and result.spectrum_data:
                 freqs, mags = result.spectrum_data
                 self._spectrum_view.set_spectrum(freqs, mags)
@@ -597,14 +604,18 @@ class AccordionWindow(QMainWindow):
                         beat_freq = result.beat_frequencies[-1]
 
                 panel.set_data(reed.frequency, reed.cents, beat_freq)
+                # Update unified meter with this reed's cents
+                self._multi_meter.set_reed_data(i, reed.cents)
             else:
                 panel.set_inactive()
+                self._multi_meter.set_reed_data(i, None)
 
     def _on_reeds_changed(self, index: int):
         """Handle number of reeds change."""
         self._num_reeds = index + 1  # 0=1, 1=2, 2=3, 3=4
         self._detector.set_max_reeds(self._num_reeds)
         self._create_reed_panels()
+        self._multi_meter.set_num_reeds(self._num_reeds)
 
     def _on_reference_changed(self, value: float):
         """Handle reference frequency change."""

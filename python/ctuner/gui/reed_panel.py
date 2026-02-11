@@ -13,7 +13,6 @@ from .styles import (
     TEXT_SECONDARY,
     WARNING_ORANGE,
 )
-from .tuning_meter import TuningMeter
 
 
 class ReedPanel(QFrame):
@@ -58,10 +57,6 @@ class ReedPanel(QFrame):
         self._freq_label.setObjectName("frequencyLabel")
         self._freq_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self._freq_label)
-
-        # Tuning meter
-        self._meter = TuningMeter()
-        layout.addWidget(self._meter)
 
         # Beat frequency display
         self._beat_label = QLabel("")
@@ -117,9 +112,6 @@ class ReedPanel(QFrame):
         self._cents_label.setText(f"{sign}{cents:.1f}¢")
         self._cents_label.setStyleSheet(f"color: {self._get_cents_color(cents)};")
 
-        # Update meter
-        self._meter.set_cents(cents)
-
         # Update beat frequency
         if beat_frequency is not None:
             self._beat_label.setText(f"Beat: {beat_frequency:.2f} Hz")
@@ -132,7 +124,6 @@ class ReedPanel(QFrame):
         self._cents_label.setStyleSheet(f"color: {TEXT_SECONDARY};")
         self._freq_label.setText("-- Hz")
         self._beat_label.setText("")
-        self._meter.set_inactive()
 
     def _get_cents_color(self, cents: float) -> str:
         """Get color based on cents deviation."""
