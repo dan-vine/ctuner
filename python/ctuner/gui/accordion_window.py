@@ -30,6 +30,7 @@ from PySide6.QtWidgets import (
 from ..accordion import AccordionDetector, AccordionResult
 from ..constants import A4_REFERENCE, NOTE_NAMES, SAMPLE_RATE
 from ..temperaments import Temperament
+from .measurement_log import MeasurementLogWindow
 from .note_display import NoteDisplay
 from .reed_panel import ReedPanel
 from .spectrum_view import SpectrumView
@@ -108,6 +109,14 @@ class AccordionWindow(QMainWindow):
         # UI components
         self._reed_panels: list[ReedPanel] = []
         self._settings_expanded = False
+
+        # Measurement log window state
+        self._log_window: MeasurementLogWindow | None = None
+        self._log_recording_hold = False  # Recording in hold mode
+        self._log_recording_timed = False  # Recording in timed mode
+        self._log_timer = QTimer()
+        self._log_timer.timeout.connect(self._on_log_timer)
+
         self._setup_ui()
         self._apply_style()
 
@@ -205,6 +214,14 @@ class AccordionWindow(QMainWindow):
         self._settings_toggle.setStyleSheet(TOGGLE_BUTTON_STYLE)
         self._settings_toggle.clicked.connect(self._toggle_settings)
         settings_layout.addWidget(self._settings_toggle)
+
+        settings_layout.addSpacing(15)
+
+        # Log button
+        self._log_btn = QPushButton("Log")
+        self._log_btn.setToolTip("Open measurement log window")
+        self._log_btn.clicked.connect(self._open_log_window)
+        settings_layout.addWidget(self._log_btn)
 
         settings_layout.addStretch()
 
@@ -509,6 +526,35 @@ class AccordionWindow(QMainWindow):
             center_freq = self._last_result.reeds[0].frequency
         self._spectrum_view.set_zoom(center_freq, self._zoom_spectrum)
 
+    def _open_log_window(self):
+        """Open or show the measurement log window."""
+        if self._log_window is None:
+            self._log_window = MeasurementLogWindow(self)
+            self._log_window.request_hold_mode.connect(self._on_log_request_hold_mode)
+            self._log_window.request_timed_recording.connect(self._on_log_request_timed)
+        self._log_window.show()
+        self._log_window.raise_()
+
+    def _on_log_request_hold_mode(self, enabled: bool):
+        """Handle log window request to enable/disable hold mode recording."""
+        self._log_recording_hold = enabled
+        if enabled:
+            # Auto-enable hold mode in main window
+            self._hold_mode_cb.setChecked(True)
+
+    def _on_log_request_timed(self, enabled: bool, interval: float):
+        """Handle log window request for timed recording."""
+        self._log_recording_timed = enabled
+        if enabled:
+            self._log_timer.start(int(interval * 1000))
+        else:
+            self._log_timer.stop()
+
+    def _on_log_timer(self):
+        """Timer callback for timed recording mode."""
+        if self._log_window and self._last_result and self._last_result.valid:
+            self._log_window.add_entry(self._last_result)
+
     def _on_input_device_changed(self, index: int):
         """Handle input device combo change."""
         device_id = self._input_combo.itemData(index)
@@ -631,6 +677,9 @@ class AccordionWindow(QMainWindow):
                 # Note ended - freeze on best result
                 self._hold_state = "HOLDING"
                 self._status_label.setText("Held")
+                # Add to log if hold mode recording is active
+                if self._log_recording_hold and self._log_window and self._held_result:
+                    self._log_window.add_entry(self._held_result)
                 return self._held_result
 
         elif self._hold_state == "HOLDING":
@@ -727,6 +776,9 @@ class AccordionWindow(QMainWindow):
         self._save_settings()
         self._stop_audio()
         self._timer.stop()
+        self._log_timer.stop()
+        if self._log_window:
+            self._log_window.close()
         event.accept()
 
     def _load_settings(self):
