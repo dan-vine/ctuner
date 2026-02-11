@@ -91,9 +91,9 @@ class SpectrumView(QFrame):
             self._min_freq = 20.0
             self._max_freq = 2000.0
         else:
-            # Zoom to +/- 1/3 octave around the center frequency
-            # 2^(1/3) ≈ 1.26, giving a tighter view of the note and its reeds
-            zoom_factor = 1.26
+            # Zoom to +/- ~1 semitone around the center frequency
+            # 2^(1/12) ≈ 1.06, giving a very tight view of the reeds
+            zoom_factor = 1.06
             self._min_freq = max(20.0, center_freq / zoom_factor)
             self._max_freq = min(4000.0, center_freq * zoom_factor)
         self.update()
@@ -132,10 +132,12 @@ class SpectrumView(QFrame):
             painter.drawLine(int(x), margin_top, int(x), margin_top + plot_height)
             painter.setPen(QPen(QColor(TEXT_SECONDARY), 1))
 
-        # Draw magnitude axis labels
-        for db in [0, -20, -40]:
-            mag = 10 ** (db / 20)  # Convert dB to linear
-            y = self._mag_to_y(mag, margin_top, plot_height)
+        # Draw magnitude axis labels (dB scale)
+        for db in [0, -20, -40, -60]:
+            # Calculate y position directly from dB value
+            db_min, db_max = -60, 0
+            normalized = (db_max - db) / (db_max - db_min)
+            y = margin_top + normalized * plot_height
             painter.drawText(5, int(y) + 4, f"{db}")
             # Grid line
             painter.setPen(QPen(QColor(BORDER_COLOR), 1, Qt.DotLine))
@@ -147,15 +149,18 @@ class SpectrumView(QFrame):
             # Create path for spectrum line
             path = QPainterPath()
 
-            # Downsample for performance if needed
-            step = max(1, len(self._frequencies) // plot_width)
-            freqs = self._frequencies[::step]
-            mags = self._magnitudes[::step]
+            # Filter to visible frequency range first
+            mask = (self._frequencies >= self._min_freq) & (self._frequencies <= self._max_freq)
+            visible_freqs = self._frequencies[mask]
+            visible_mags = self._magnitudes[mask]
+
+            # Downsample only if there are more points than pixels
+            step = max(1, len(visible_freqs) // plot_width)
+            freqs = visible_freqs[::step]
+            mags = visible_mags[::step]
 
             first_point = True
             for freq, mag in zip(freqs, mags):
-                if freq < self._min_freq or freq > self._max_freq:
-                    continue
                 x = self._freq_to_x(freq, margin_left, plot_width)
                 y = self._mag_to_y(mag, margin_top, plot_height)
 
@@ -170,9 +175,9 @@ class SpectrumView(QFrame):
             painter.setBrush(Qt.NoBrush)
             painter.drawPath(path)
 
-            # Draw peak markers
+            # Draw peak markers with frequency labels
             painter.setPen(QPen(QColor(TEXT_COLOR), 2))
-            for peak_freq in self._peak_frequencies:
+            for i, peak_freq in enumerate(self._peak_frequencies):
                 if peak_freq < self._min_freq or peak_freq > self._max_freq:
                     continue
                 x = self._freq_to_x(peak_freq, margin_left, plot_width)
@@ -183,6 +188,13 @@ class SpectrumView(QFrame):
                     y = self._mag_to_y(mag, margin_top, plot_height)
                     # Draw marker
                     painter.drawEllipse(int(x) - 4, int(y) - 4, 8, 8)
+                    # Draw frequency label above marker
+                    label = f"{peak_freq:.1f} Hz"
+                    # Alternate label position (above/below) to avoid overlap
+                    label_y = int(y) - 12 if i % 2 == 0 else int(y) + 20
+                    # Keep label within bounds
+                    label_y = max(margin_top + 12, min(label_y, margin_top + plot_height - 5))
+                    painter.drawText(int(x) - 25, label_y, label)
 
     def _freq_to_x(self, freq: float, start: float, width: float) -> float:
         """Convert frequency to x coordinate (logarithmic scale)."""
@@ -195,7 +207,13 @@ class SpectrumView(QFrame):
         return start + normalized * width
 
     def _mag_to_y(self, mag: float, start: float, height: float) -> float:
-        """Convert magnitude to y coordinate (linear scale, inverted)."""
-        # Clamp magnitude to valid range
-        mag = max(0.001, min(1.0, mag))
-        return start + (1.0 - mag) * height
+        """Convert magnitude to y coordinate (dB scale, inverted)."""
+        # Convert to dB (0 dB = magnitude 1.0)
+        mag = max(0.0001, min(1.0, mag))  # Clamp to avoid log(0)
+        db = 20 * np.log10(mag)
+        # Map dB range (0 to -60) to y coordinate
+        db_min = -60  # Bottom of display
+        db_max = 0    # Top of display
+        db = max(db_min, min(db_max, db))  # Clamp to range
+        normalized = (db_max - db) / (db_max - db_min)  # 0 at top, 1 at bottom
+        return start + normalized * height

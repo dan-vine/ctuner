@@ -191,26 +191,26 @@ class AccordionDetector:
         return reeds
 
     def _compute_spectrum(self, samples: np.ndarray):
-        """Compute FFT spectrum for display."""
-        # Use same FFT size as multi-pitch detector
+        """Compute FFT spectrum for display with zero-padding for finer resolution."""
+        # Use the detector's accumulated buffer for full frequency resolution
+        # The detector maintains a 16384-sample buffer that accumulates across calls
         fft_size = self._detector.fft_size
-
-        # Ensure we have enough samples
-        if len(samples) < fft_size:
-            padded = np.zeros(fft_size, dtype=np.float64)
-            padded[:len(samples)] = samples
-            samples = padded
+        buffer = self._detector._buffer
 
         # Apply window
         window = np.hamming(fft_size)
-        windowed = samples[-fft_size:] * window
+        windowed = buffer * window
 
-        # FFT
-        spectrum = np.fft.rfft(windowed)
+        # Zero-pad to 16x for finer frequency interpolation in display
+        # This gives ~0.17 Hz per bin instead of ~2.7 Hz per bin
+        display_fft_size = fft_size * 16
+
+        # FFT with zero-padding
+        spectrum = np.fft.rfft(windowed, n=display_fft_size)
         magnitudes = np.abs(spectrum)
 
-        # Frequency bins
-        freqs = np.fft.rfftfreq(fft_size, 1.0 / self.sample_rate)
+        # Frequency bins for the zero-padded FFT
+        freqs = np.fft.rfftfreq(display_fft_size, 1.0 / self.sample_rate)
 
         # Limit to musical range (20 Hz to 2000 Hz for accordion)
         mask = (freqs >= 20) & (freqs <= 2000)
