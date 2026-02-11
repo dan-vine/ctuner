@@ -13,8 +13,6 @@ from PySide6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFrame,
-    QGridLayout,
-    QGroupBox,
     QHBoxLayout,
     QLabel,
     QMainWindow,
@@ -22,7 +20,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QSlider,
-    QSpacerItem,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -260,85 +258,96 @@ class AccordionWindow(QMainWindow):
         self._reed_container.addStretch()
 
     def _create_settings_panel(self) -> QFrame:
-        """Create the expandable settings panel with grouped options."""
+        """Create the expandable settings panel with tabbed categories."""
         panel = QFrame()
         panel.setObjectName("settingsPanel")
         panel.setStyleSheet(SETTINGS_PANEL_STYLE)
-        panel.setMinimumHeight(340)
 
-        layout = QGridLayout(panel)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(15)
+        layout = QHBoxLayout(panel)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
 
-        # Detection group
-        detection_group = QGroupBox("Detection")
-        detection_group.setMinimumWidth(220)
-        detection_layout = QVBoxLayout(detection_group)
-        detection_layout.setSpacing(4)
-        detection_layout.setContentsMargins(6, 6, 6, 6)
+        # Tab widget for settings categories
+        tabs = QTabWidget()
 
-        # Octave Filter checkbox
+        # === Detection tab ===
+        detection_tab = QWidget()
+        detection_layout = QVBoxLayout(detection_tab)
+        detection_layout.setSpacing(8)
+        detection_layout.setContentsMargins(10, 10, 10, 10)
+
+        # Checkboxes row
+        checkbox_row = QHBoxLayout()
+        checkbox_row.setSpacing(20)
+
         self._octave_filter_cb = QCheckBox("Octave Filter")
         self._octave_filter_cb.setToolTip("Restrict detection to one octave (OFF for chords)")
-        self._octave_filter_cb.setChecked(False)  # Default OFF for accordion
+        self._octave_filter_cb.setChecked(False)
         self._octave_filter_cb.stateChanged.connect(self._on_octave_filter_changed)
-        detection_layout.addWidget(self._octave_filter_cb)
+        checkbox_row.addWidget(self._octave_filter_cb)
 
-        # Fundamental Filter checkbox
         self._fundamental_filter_cb = QCheckBox("Fundamental Filter")
         self._fundamental_filter_cb.setToolTip("Only detect harmonics of fundamental")
         self._fundamental_filter_cb.setChecked(False)
         self._fundamental_filter_cb.stateChanged.connect(self._on_fundamental_filter_changed)
-        detection_layout.addWidget(self._fundamental_filter_cb)
+        checkbox_row.addWidget(self._fundamental_filter_cb)
 
-        # Downsample checkbox
         self._downsample_cb = QCheckBox("Downsample")
         self._downsample_cb.setToolTip("Better low frequency detection")
         self._downsample_cb.setChecked(False)
         self._downsample_cb.stateChanged.connect(self._on_downsample_changed)
-        detection_layout.addWidget(self._downsample_cb)
+        checkbox_row.addWidget(self._downsample_cb)
 
-        # Sensitivity slider row
-        sensitivity_row = QHBoxLayout()
-        sensitivity_row.addWidget(QLabel("Sensitivity:"))
-        self._sensitivity_slider = QSlider(Qt.Horizontal)
-        self._sensitivity_slider.setRange(5, 50)  # 0.05 to 0.50
-        self._sensitivity_slider.setValue(10)  # Default 0.10
+        checkbox_row.addStretch()
+        detection_layout.addLayout(checkbox_row)
+
+        # Sliders row
+        sliders_row = QHBoxLayout()
+        sliders_row.setSpacing(30)
+
+        # Sensitivity slider
+        sens_layout = QHBoxLayout()
+        sens_layout.addWidget(QLabel("Sensitivity:"))
+        self._sensitivity_slider = QSlider(Qt.Orientation.Horizontal)
+        self._sensitivity_slider.setRange(5, 50)
+        self._sensitivity_slider.setValue(10)
+        self._sensitivity_slider.setMinimumWidth(100)
         self._sensitivity_slider.setToolTip("Detection threshold (lower = more sensitive)")
         self._sensitivity_slider.valueChanged.connect(self._on_sensitivity_changed)
-        sensitivity_row.addWidget(self._sensitivity_slider)
+        sens_layout.addWidget(self._sensitivity_slider)
         self._sensitivity_value = QLabel("0.10")
-        self._sensitivity_value.setMinimumWidth(35)
-        sensitivity_row.addWidget(self._sensitivity_value)
-        detection_layout.addLayout(sensitivity_row)
+        sens_layout.addWidget(self._sensitivity_value)
+        sliders_row.addLayout(sens_layout)
 
-        # Reed Spread slider row
-        spread_row = QHBoxLayout()
-        spread_row.addWidget(QLabel("Reed Spread:"))
-        self._reed_spread_slider = QSlider(Qt.Horizontal)
-        self._reed_spread_slider.setRange(20, 100)  # 20 to 100 cents
-        self._reed_spread_slider.setValue(50)  # Default 50 cents
+        # Reed Spread slider
+        spread_layout = QHBoxLayout()
+        spread_layout.addWidget(QLabel("Reed Spread:"))
+        self._reed_spread_slider = QSlider(Qt.Orientation.Horizontal)
+        self._reed_spread_slider.setRange(20, 100)
+        self._reed_spread_slider.setValue(50)
+        self._reed_spread_slider.setMinimumWidth(100)
         self._reed_spread_slider.setToolTip("Max cents to group as same note")
         self._reed_spread_slider.valueChanged.connect(self._on_reed_spread_changed)
-        spread_row.addWidget(self._reed_spread_slider)
+        spread_layout.addWidget(self._reed_spread_slider)
         self._reed_spread_value = QLabel("50¢")
-        self._reed_spread_value.setMinimumWidth(35)
-        spread_row.addWidget(self._reed_spread_value)
-        detection_layout.addLayout(spread_row)
+        spread_layout.addWidget(self._reed_spread_value)
+        sliders_row.addLayout(spread_layout)
 
-        layout.addWidget(detection_group, 0, 0)  # Row 0, Col 0
+        sliders_row.addStretch()
+        detection_layout.addLayout(sliders_row)
 
-        # Tuning group
-        tuning_group = QGroupBox("Tuning")
-        tuning_group.setMinimumWidth(260)
-        tuning_layout = QVBoxLayout(tuning_group)
-        tuning_layout.setSpacing(4)
-        tuning_layout.setContentsMargins(6, 6, 6, 6)
+        tabs.addTab(detection_tab, "Detection")
 
-        # Temperament combo row
-        temperament_row = QHBoxLayout()
-        temperament_row.addWidget(QLabel("Temperament:"))
+        # === Tuning tab ===
+        tuning_tab = QWidget()
+        tuning_layout = QHBoxLayout(tuning_tab)
+        tuning_layout.setSpacing(20)
+        tuning_layout.setContentsMargins(10, 10, 10, 10)
+
+        # Temperament
+        tuning_layout.addWidget(QLabel("Temperament:"))
         self._temperament_combo = QComboBox()
+        self._temperament_combo.setFixedWidth(140)
         temperament_names = [
             "Kirnberger I", "Kirnberger II", "Kirnberger III",
             "Werckmeister III", "Werckmeister IV", "Werckmeister V", "Werckmeister VI",
@@ -350,96 +359,94 @@ class AccordionWindow(QMainWindow):
             "Bruder 1829", "Barnes", "Prelleur", "Chaumont", "Rameau"
         ]
         self._temperament_combo.addItems(temperament_names)
-        self._temperament_combo.setCurrentIndex(Temperament.EQUAL)  # Default to Equal
+        self._temperament_combo.setCurrentIndex(Temperament.EQUAL)
         self._temperament_combo.currentIndexChanged.connect(self._on_temperament_changed)
-        temperament_row.addWidget(self._temperament_combo)
-        tuning_layout.addLayout(temperament_row)
+        tuning_layout.addWidget(self._temperament_combo)
 
-        # Key combo row
-        key_row = QHBoxLayout()
-        key_row.addWidget(QLabel("Key:"))
+        tuning_layout.addSpacing(20)
+
+        # Key
+        tuning_layout.addWidget(QLabel("Key:"))
         self._key_combo = QComboBox()
+        self._key_combo.setFixedWidth(60)
         self._key_combo.addItems(NOTE_NAMES)
-        self._key_combo.setCurrentIndex(0)  # Default to C
+        self._key_combo.setCurrentIndex(0)
         self._key_combo.currentIndexChanged.connect(self._on_key_changed)
-        key_row.addWidget(self._key_combo)
-        tuning_layout.addLayout(key_row)
+        tuning_layout.addWidget(self._key_combo)
 
-        # Transpose spinner row
-        transpose_row = QHBoxLayout()
-        transpose_row.addWidget(QLabel("Transpose:"))
+        tuning_layout.addSpacing(20)
+
+        # Transpose
+        tuning_layout.addWidget(QLabel("Transpose:"))
         self._transpose_spin = QDoubleSpinBox()
+        self._transpose_spin.setFixedWidth(70)
         self._transpose_spin.setRange(-6, 6)
         self._transpose_spin.setValue(0)
         self._transpose_spin.setDecimals(0)
-        self._transpose_spin.setSuffix(" semitones")
+        self._transpose_spin.setSuffix(" st")
         self._transpose_spin.setToolTip("Transpose display for transposing instruments")
-        transpose_row.addWidget(self._transpose_spin)
-        tuning_layout.addLayout(transpose_row)
+        tuning_layout.addWidget(self._transpose_spin)
 
-        layout.addWidget(tuning_group, 0, 1)  # Row 0, Col 1
+        tuning_layout.addStretch()
 
-        # Display group
-        display_group = QGroupBox("Display")
-        display_group.setMinimumWidth(150)
-        display_layout = QVBoxLayout(display_group)
-        display_layout.setSpacing(4)
-        display_layout.setContentsMargins(6, 6, 6, 6)
+        tabs.addTab(tuning_tab, "Tuning")
 
-        # Lock Display checkbox
+        # === Display tab ===
+        display_tab = QWidget()
+        display_layout = QHBoxLayout(display_tab)
+        display_layout.setSpacing(20)
+        display_layout.setContentsMargins(10, 10, 10, 10)
+
         self._lock_display_cb = QCheckBox("Lock Display")
         self._lock_display_cb.setToolTip("Freeze display values")
         self._lock_display_cb.setChecked(False)
         self._lock_display_cb.stateChanged.connect(self._on_lock_display_changed)
         display_layout.addWidget(self._lock_display_cb)
 
-        # Hold Mode checkbox
         self._hold_mode_cb = QCheckBox("Hold Mode")
         self._hold_mode_cb.setToolTip("Freeze display when note ends, showing best measurement")
         self._hold_mode_cb.setChecked(False)
         self._hold_mode_cb.stateChanged.connect(self._on_hold_mode_changed)
         display_layout.addWidget(self._hold_mode_cb)
 
-        # Zoom Spectrum checkbox
         self._zoom_spectrum_cb = QCheckBox("Zoom Spectrum")
         self._zoom_spectrum_cb.setToolTip("Zoom spectrum to detected note")
-        self._zoom_spectrum_cb.setChecked(True)  # Default ON
+        self._zoom_spectrum_cb.setChecked(True)
         self._zoom_spectrum_cb.stateChanged.connect(self._on_zoom_spectrum_changed)
         display_layout.addWidget(self._zoom_spectrum_cb)
 
-        layout.addWidget(display_group, 1, 0)  # Row 1, Col 0
+        display_layout.addStretch()
 
-        # Audio group
-        audio_group = QGroupBox("Audio")
-        audio_group.setMinimumWidth(220)
-        audio_layout = QVBoxLayout(audio_group)
-        audio_layout.setSpacing(4)
-        audio_layout.setContentsMargins(6, 6, 6, 6)
+        tabs.addTab(display_tab, "Display")
 
-        # Input device combo row
-        input_row = QHBoxLayout()
-        input_row.addWidget(QLabel("Input Device:"))
+        # === Audio tab ===
+        audio_tab = QWidget()
+        audio_layout = QHBoxLayout(audio_tab)
+        audio_layout.setSpacing(15)
+        audio_layout.setContentsMargins(10, 10, 10, 10)
+
+        audio_layout.addWidget(QLabel("Input Device:"))
         self._input_combo = QComboBox()
+        self._input_combo.setMinimumWidth(200)
         self._populate_audio_devices()
         self._input_combo.currentIndexChanged.connect(self._on_input_device_changed)
-        input_row.addWidget(self._input_combo)
-        audio_layout.addLayout(input_row)
+        audio_layout.addWidget(self._input_combo)
 
-        # Refresh button
         refresh_btn = QPushButton("Refresh")
         refresh_btn.clicked.connect(self._populate_audio_devices)
         audio_layout.addWidget(refresh_btn)
 
-        layout.addWidget(audio_group, 1, 1)  # Row 1, Col 1
+        audio_layout.addStretch()
 
-        # Add vertical spacer to push reset button to bottom
-        layout.addItem(QSpacerItem(0, 0, QSizePolicy.Minimum, QSizePolicy.Expanding), 2, 0, 1, 2)
+        tabs.addTab(audio_tab, "Audio")
 
-        # Reset to Defaults button (spans both columns)
-        reset_btn = QPushButton("Reset to Defaults")
+        layout.addWidget(tabs, 1)
+
+        # Reset All button outside tabs
+        reset_btn = QPushButton("Reset All")
         reset_btn.setToolTip("Reset all settings to their default values")
         reset_btn.clicked.connect(self._reset_to_defaults)
-        layout.addWidget(reset_btn, 3, 0, 1, 2)  # Row 3, spans columns 0-1
+        layout.addWidget(reset_btn)
 
         return panel
 
@@ -463,10 +470,10 @@ class AccordionWindow(QMainWindow):
         self._settings_panel.setVisible(checked)
         self._settings_toggle.setText("▲ Settings" if checked else "▼ Settings")
 
-        # Resize window to accommodate settings panel
+        # Resize window to accommodate settings panel (tabs are more compact)
         if checked:
-            self.setMinimumHeight(960)
-            self.resize(self.width(), 960)
+            self.setMinimumHeight(680)
+            self.resize(self.width(), 680)
         else:
             self.setMinimumHeight(600)
             self.resize(self.width(), 600)
