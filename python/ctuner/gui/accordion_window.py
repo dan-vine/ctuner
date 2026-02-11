@@ -68,6 +68,7 @@ class AccordionWindow(QMainWindow):
         'key': 0,  # C
         'transpose': 0,
         'zoom_spectrum': True,
+        'hold_mode': False,
         'settings_expanded': False,
     }
 
@@ -97,6 +98,12 @@ class AccordionWindow(QMainWindow):
         # Display settings
         self._lock_display = False
         self._zoom_spectrum = True
+
+        # Hold mode state
+        self._hold_mode = False
+        self._hold_state = "WAITING"  # WAITING, TRACKING, HOLDING
+        self._held_result: AccordionResult | None = None
+        self._held_magnitude = 0.0
 
         # UI components
         self._reed_panels: list[ReedPanel] = []
@@ -369,6 +376,13 @@ class AccordionWindow(QMainWindow):
         self._lock_display_cb.stateChanged.connect(self._on_lock_display_changed)
         display_layout.addWidget(self._lock_display_cb)
 
+        # Hold Mode checkbox
+        self._hold_mode_cb = QCheckBox("Hold Mode")
+        self._hold_mode_cb.setToolTip("Freeze display when note ends, showing best measurement")
+        self._hold_mode_cb.setChecked(False)
+        self._hold_mode_cb.stateChanged.connect(self._on_hold_mode_changed)
+        display_layout.addWidget(self._hold_mode_cb)
+
         # Zoom Spectrum checkbox
         self._zoom_spectrum_cb = QCheckBox("Zoom Spectrum")
         self._zoom_spectrum_cb.setToolTip("Zoom spectrum to detected note")
@@ -475,6 +489,16 @@ class AccordionWindow(QMainWindow):
         """Handle lock display checkbox change."""
         self._lock_display = self._lock_display_cb.isChecked()
 
+    def _on_hold_mode_changed(self, state):
+        """Handle hold mode checkbox change."""
+        self._hold_mode = self._hold_mode_cb.isChecked()
+        # Reset hold state when toggling
+        self._hold_state = "WAITING"
+        self._held_result = None
+        self._held_magnitude = 0.0
+        if not self._hold_mode:
+            self._status_label.setText("Listening...")
+
     def _on_zoom_spectrum_changed(self, state):
         """Handle zoom spectrum checkbox change."""
         # Use isChecked() directly for reliable state detection
@@ -545,17 +569,89 @@ class AccordionWindow(QMainWindow):
 
         result = self._last_result
 
-        if result is None or not result.valid:
-            self._note_display.set_inactive()
-            for panel in self._reed_panels:
-                panel.set_inactive()
-            self._multi_meter.set_all_inactive()
-            if result and result.spectrum_data:
-                freqs, mags = result.spectrum_data
-                self._spectrum_view.set_spectrum(freqs, mags)
-                self._spectrum_view.set_peaks([])
-            return
+        # Always update spectrum view with live data (even in hold mode)
+        if result and result.spectrum_data:
+            freqs, mags = result.spectrum_data
+            self._spectrum_view.set_spectrum(freqs, mags)
 
+        # Handle hold mode state machine
+        if self._hold_mode:
+            result = self._handle_hold_mode(result)
+            if result is None:
+                return
+        else:
+            # Normal mode - handle invalid result
+            if result is None or not result.valid:
+                self._note_display.set_inactive()
+                for panel in self._reed_panels:
+                    panel.set_inactive()
+                self._multi_meter.set_all_inactive()
+                if result and result.spectrum_data:
+                    self._spectrum_view.set_peaks([])
+                return
+
+        # Display the result (either live or held)
+        self._display_result(result)
+
+    def _handle_hold_mode(self, result: AccordionResult | None) -> AccordionResult | None:
+        """Handle hold mode state machine. Returns result to display, or None to skip display."""
+        is_valid = result is not None and result.valid
+
+        if self._hold_state == "WAITING":
+            if is_valid:
+                # Note started - begin tracking
+                self._hold_state = "TRACKING"
+                self._held_result = result
+                self._held_magnitude = self._calculate_magnitude(result)
+                self._status_label.setText("Tracking...")
+                return result
+            else:
+                # Still waiting for a note
+                self._note_display.set_inactive()
+                for panel in self._reed_panels:
+                    panel.set_inactive()
+                self._multi_meter.set_all_inactive()
+                if result and result.spectrum_data:
+                    self._spectrum_view.set_peaks([])
+                return None
+
+        elif self._hold_state == "TRACKING":
+            if is_valid:
+                # Note still playing - update best if stronger
+                current_mag = self._calculate_magnitude(result)
+                if current_mag > self._held_magnitude:
+                    self._held_result = result
+                    self._held_magnitude = current_mag
+                # Display current result (real-time while playing)
+                return result
+            else:
+                # Note ended - freeze on best result
+                self._hold_state = "HOLDING"
+                self._status_label.setText("Held")
+                return self._held_result
+
+        elif self._hold_state == "HOLDING":
+            if is_valid:
+                # New note started - reset and begin tracking
+                self._hold_state = "TRACKING"
+                self._held_result = result
+                self._held_magnitude = self._calculate_magnitude(result)
+                self._status_label.setText("Tracking...")
+                return result
+            else:
+                # Keep showing held result
+                return self._held_result
+
+        return None
+
+    def _calculate_magnitude(self, result: AccordionResult) -> float:
+        """Calculate total magnitude from result's reeds."""
+        if not result or not result.reeds:
+            return 0.0
+        return sum(r.magnitude for r in result.reeds)
+
+    def _display_result(self, result: AccordionResult):
+        """Display the given result on all UI components."""
         # Update note display
         self._note_display.set_note(
             result.note_name,
@@ -563,10 +659,8 @@ class AccordionWindow(QMainWindow):
             result.ref_frequency,
         )
 
-        # Update spectrum view
+        # Update spectrum view peaks and zoom
         if result.spectrum_data:
-            freqs, mags = result.spectrum_data
-            self._spectrum_view.set_spectrum(freqs, mags)
             self._spectrum_view.set_peaks([r.frequency for r in result.reeds])
             # Zoom to detected note if enabled
             if result.reeds:
@@ -672,6 +766,9 @@ class AccordionWindow(QMainWindow):
         zoom_spectrum = settings.value("zoom_spectrum", self.DEFAULTS['zoom_spectrum'], type=bool)
         self._zoom_spectrum_cb.setChecked(zoom_spectrum)
 
+        hold_mode = settings.value("hold_mode", self.DEFAULTS['hold_mode'], type=bool)
+        self._hold_mode_cb.setChecked(hold_mode)
+
         settings_expanded = settings.value("settings_expanded", self.DEFAULTS['settings_expanded'], type=bool)
         if settings_expanded:
             self._settings_toggle.setChecked(True)
@@ -714,6 +811,7 @@ class AccordionWindow(QMainWindow):
 
         # Display settings
         settings.setValue("zoom_spectrum", self._zoom_spectrum_cb.isChecked())
+        settings.setValue("hold_mode", self._hold_mode_cb.isChecked())
         settings.setValue("settings_expanded", self._settings_expanded)
 
         # Input device (by name, not ID which may change)
@@ -750,6 +848,7 @@ class AccordionWindow(QMainWindow):
         self._key_combo.setCurrentIndex(self.DEFAULTS['key'])
         self._transpose_spin.setValue(self.DEFAULTS['transpose'])
         self._zoom_spectrum_cb.setChecked(self.DEFAULTS['zoom_spectrum'])
+        self._hold_mode_cb.setChecked(self.DEFAULTS['hold_mode'])
         self._input_combo.setCurrentIndex(0)  # Default device
 
         # Collapse settings panel if expanded
