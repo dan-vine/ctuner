@@ -569,16 +569,17 @@ class AccordionWindow(QMainWindow):
 
         result = self._last_result
 
-        # Always update spectrum view with live data (even in hold mode)
-        if result and result.spectrum_data:
-            freqs, mags = result.spectrum_data
-            self._spectrum_view.set_spectrum(freqs, mags)
-
         # Handle hold mode state machine
         if self._hold_mode:
-            result = self._handle_hold_mode(result)
-            if result is None:
+            display_result = self._handle_hold_mode(result)
+            if display_result is None:
+                # Update spectrum with live data while waiting
+                if result and result.spectrum_data:
+                    freqs, mags = result.spectrum_data
+                    self._spectrum_view.set_spectrum(freqs, mags)
                 return
+            # Use the result from hold mode (could be held result)
+            result = display_result
         else:
             # Normal mode - handle invalid result
             if result is None or not result.valid:
@@ -587,10 +588,12 @@ class AccordionWindow(QMainWindow):
                     panel.set_inactive()
                 self._multi_meter.set_all_inactive()
                 if result and result.spectrum_data:
+                    freqs, mags = result.spectrum_data
+                    self._spectrum_view.set_spectrum(freqs, mags)
                     self._spectrum_view.set_peaks([])
                 return
 
-        # Display the result (either live or held)
+        # Display the result (either live or held) - includes spectrum
         self._display_result(result)
 
     def _handle_hold_mode(self, result: AccordionResult | None) -> AccordionResult | None:
@@ -659,8 +662,10 @@ class AccordionWindow(QMainWindow):
             result.ref_frequency,
         )
 
-        # Update spectrum view peaks and zoom
+        # Update spectrum view with data, peaks and zoom
         if result.spectrum_data:
+            freqs, mags = result.spectrum_data
+            self._spectrum_view.set_spectrum(freqs, mags)
             self._spectrum_view.set_peaks([r.frequency for r in result.reeds])
             # Zoom to detected note if enabled
             if result.reeds:
